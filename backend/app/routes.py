@@ -1,9 +1,10 @@
 from flask import Blueprint, jsonify, request
 from app.models import Ingredient
 from app import db
+from flask_cors import CORS
 
 main = Blueprint("main", __name__)
-
+CORS(main)
 # GET all ingredients
 @main.route('/ingredients', methods=['GET'])
 def get_ingredients():
@@ -91,3 +92,27 @@ def update_ingredient(id):
             "substitute": ingredient.substitute,
         }
     }), 200
+    
+    # GET ingredients by recipe name
+@main.route('/ingredients/search', methods=['GET'])
+def search_ingredients():
+    recipe_name = request.args.get('recipe_name')
+    if not recipe_name:
+        return jsonify({"error": "Recipe name is required"}), 400
+
+    ingredients = Ingredient.query.filter(Ingredient.recipe_name.ilike(f'%{recipe_name}%')).all()
+    if not ingredients:
+        return jsonify({"message": "No ingredients found for this recipe"}), 404
+
+    ingredient_list = [
+        {
+            "id": ingredient.id,
+            "recipe_name": ingredient.recipe_name,
+            "ingredient_name": ingredient.ingredient_name,
+            "aisle_number": ingredient.aisle_number,
+            "substitute": ingredient.substitute,
+        }
+        for ingredient in ingredients
+    ]
+    return jsonify(ingredient_list), 200
+
